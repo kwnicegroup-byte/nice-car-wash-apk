@@ -1,0 +1,40 @@
+name: Build Nice Car Wash APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Unpack Android project
+        run: |
+          unzip -q NiceCarWashAndroid_Project.zip -d unpacked
+          test -f unpacked/NiceCarWashAndroid/app/build.gradle
+
+      - name: Build APK
+        run: |
+          cd unpacked/NiceCarWashAndroid
+          gradle --no-daemon assembleDebug
+
+      - name: Save APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nice-Car-Wash-debug-APK
+          path: unpacked/NiceCarWashAndroid/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7

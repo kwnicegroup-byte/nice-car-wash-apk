@@ -54,8 +54,30 @@ function total(){let s=0;selected.forEach((q,id)=>{const x=services.find(z=>z.id
 function updateTotal(){$('orderTotal').textContent=money(total())}
 function online(){ $('net').textContent=navigator.onLine?'网络在线':'离线模式';}
 window.addEventListener('online',online);window.addEventListener('offline',online);online();
-function openApp(s,m){session=s;show('login',!s);show('app',!!s);if(s){$('who').textContent=s.user.email||'User';loadMembership();}}
-async function loadMembership(){const {data,error}=await client.from('v6_branch_members').select('role,active').eq('branch_id',BRANCH).eq('user_id',session.user.id).maybeSingle();if(error||!data||!data.active){await client.auth.signOut();session=null;show('app',false);show('login',true);say('loginMsg','此账号尚未获授权加入 Kota Tinggi 分店。请老板先完成 STAFF01 分店授权，再重新登录。');return;}role=data.role;$('role').textContent=role==='owner'?'老板账号 · 全部管理权限':'员工账号 · 日常开单权限';show('ownerService',role==='owner');show('staffTab',role==='owner');show('reportsTab',role==='owner');await loadServices();await refreshOrders();}
+let membershipLoading=false;
+async function openApp(s){session=s;show('login',!s);show('app',!!s);if(s){$('who').textContent=s.user.email||'User';await loadMembership();}}
+async function loadMembership(){
+ if(!session||membershipLoading)return;
+ membershipLoading=true;
+ say('loginMsg','登录成功，正在验证分店员工权限…');
+ try{
+  const query=client.from('v6_branch_members').select('role,active').eq('branch_id',BRANCH).eq('user_id',session.user.id).maybeSingle();
+  const result=await Promise.race([query,new Promise((_,reject)=>setTimeout(()=>reject(new Error('分店权限查询超过15秒。请检查网络或 Supabase 数据库连接。')),15000))]);
+  const {data,error}=result;
+  if(error)throw new Error('分店权限读取失败：'+error.message);
+  if(!data||!data.active)throw new Error('此账号尚未获授权加入 Kota Tinggi 分店。请检查 STAFF01 绑定记录。');
+  role=data.role;
+  $('role').textContent=role==='owner'?'老板账号 · 全部管理权限':'员工账号 · 日常开单权限';
+  show('ownerService',role==='owner');show('staffTab',role==='owner');show('reportsTab',role==='owner');
+  show('login',false);show('app',true);
+  await loadServices();await refreshOrders();
+  say('appMsg','员工权限验证成功，可以开始使用。');
+ }catch(e){
+  await client.auth.signOut().catch(()=>{});
+  session=null;show('app',false);show('login',true);
+  say('loginMsg',e.message||'登录后验证失败，请重试。');
+ }finally{membershipLoading=false;}
+}
 async function loadServices(){const {data,error}=await client.from('v6_services').select('id,service_name,price,active').eq('branch_id',BRANCH).eq('active',true).order('service_name');if(error){msg('读取服务失败：'+error.message);return;}services=data||[];selected.clear();$('serviceChoices').innerHTML='';services.forEach(s=>{const row=document.createElement('div');row.className='item';const label=document.createElement('label');label.style.margin='0';const cb=document.createElement('input');cb.type='checkbox';cb.style.width='20px';cb.style.minHeight='20px';cb.addEventListener('change',()=>{if(cb.checked)selected.set(s.id,1);else selected.delete(s.id);updateTotal()});label.append(cb,document.createTextNode(' '+s.service_name));const price=document.createElement('b');price.textContent=money(s.price);row.append(label,price);$('serviceChoices').append(row)});$('serviceList').innerHTML='';services.forEach(s=>{const d=document.createElement('div');d.className='item';d.textContent=s.service_name+' — '+money(s.price);$('serviceList').append(d)});updateTotal();}
 async function customerVehicle(plate,name,phone,model){let customerId=null,vehicleId=null;const p=plate.trim().toUpperCase();if(name||phone){let q=await client.from('v6_customers').insert({branch_id:BRANCH,full_name:name||'',phone:phone||''}).select('id').single();if(q.error)throw q.error;customerId=q.data.id;}let v=await client.from('v6_vehicles').upsert({branch_id:BRANCH,customer_id:customerId,plate_number:p,vehicle_type:'',make_model:model||''},{onConflict:'branch_id,plate_number'}).select('id').single();if(v.error)throw v.error;vehicleId=v.data.id;return {customerId,vehicleId};}
 function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open('nice-car-wash-v6',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('queue'))r.result.createObjectStore('queue',{keyPath:'id'});};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
@@ -73,12 +95,29 @@ $('findCustomer').onclick=async()=>{const p=$('findPlate').value.trim().toUpperC
 $('addService').onclick=async()=>{const name=$('newService').value.trim(),price=Number($('newPrice').value);if(!name||!Number.isFinite(price)||price<0)return msg('请检查服务名称和价格');const {error}=await client.from('v6_services').insert({branch_id:BRANCH,service_name:name,price});if(error)return msg('新增失败：'+error.message);$('newService').value='';$('newPrice').value='';await loadServices();msg('服务已新增');};
 $('refreshReport').onclick=async()=>{const start=new Date();start.setHours(0,0,0,0);const {data,error}=await client.from('v6_orders').select('total,employee_user_id').eq('branch_id',BRANCH).eq('status','completed').gte('created_at',start.toISOString());if(error)return say('reportResult','报表读取失败：'+error.message);const sum=(data||[]).reduce((a,x)=>a+Number(x.total),0);say('reportResult','今日订单：'+data.length+' 笔\n今日营业额：'+money(sum));};
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{if(b.dataset.tab==='staff'&&role!=='owner')return; if(b.dataset.tab==='reports'&&role!=='owner')return;document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tab').forEach(x=>show(x.id,x.id==='tab-'+b.dataset.tab));});
-$('loginBtn').onclick=async()=>{try{let login=$('email').value.trim();if(login.toUpperCase()==='STAFF01')login='staff01@nicecarwash.invalid';const {data,error}=await client.auth.signInWithPassword({email:login,password:$('password').value});if(error)return say('loginMsg','登录失败：'+error.message);openApp(data.session)}catch(e){say('loginMsg','登录程序错误：'+e.message)}};
+$('loginBtn').onclick=async()=>{
+ const btn=$('loginBtn');
+ if(btn.disabled)return;
+ btn.disabled=true;btn.textContent='正在登录…';
+ try{
+  let login=$('email').value.trim();
+  if(login.toUpperCase()==='STAFF01')login='staff01@nicecarwash.invalid';
+  if(!login||!$('password').value)throw new Error('请输入员工编号和密码。');
+  say('loginMsg','正在连接 Supabase 验证账号…');
+  const result=await Promise.race([
+   client.auth.signInWithPassword({email:login,password:$('password').value}),
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error('登录请求超过15秒。请检查手机网络，稍后重试。')),15000))
+  ]);
+  if(result.error)throw new Error('登录失败：'+result.error.message);
+  await openApp(result.data.session);
+ }catch(e){say('loginMsg',e.message||'登录程序错误，请重试。');}
+ finally{btn.disabled=false;btn.textContent='登录 Sign in';}
+};
 $('copyStaffSql').onclick=()=>{const sql="DO $$ DECLARE uid uuid; bid uuid := '2b52c65d-cbd7-405a-98d9-666fad041fce'; BEGIN SELECT id INTO uid FROM auth.users WHERE lower(email)=lower('staff01@nicecarwash.invalid') LIMIT 1; IF uid IS NULL THEN RAISE EXCEPTION 'Create STAFF01 in Authentication > Users first'; END IF; INSERT INTO public.v6_profiles(user_id,display_name) VALUES(uid,'STAFF01') ON CONFLICT(user_id) DO UPDATE SET display_name='STAFF01'; INSERT INTO public.v6_branch_members(branch_id,user_id,role,active) VALUES(bid,uid,'staff',true) ON CONFLICT(branch_id,user_id) DO UPDATE SET role='staff',active=true; END $$;";navigator.clipboard.writeText(sql).then(()=>msg('员工绑定 SQL 已复制。请到 Supabase SQL Editor 执行。')).catch(()=>msg('无法自动复制，请从仓库文件 supabase-v6-staff-setup.sql 复制。'));};
 $('logout').onclick=async()=>{await client.auth.signOut();openApp(null)};
 if(!client){say('loginMsg','无法载入 Supabase SDK，请检查网络后刷新');return;}
 client.auth.getSession().then(({data})=>openApp(data.session));
-client.auth.onAuthStateChange((_e,s)=>{if(s)openApp(s)});
+// Session restoration is handled once by getSession(); avoid duplicate membership queries.
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./v6-sw.js').catch(()=>{}));
 })();
 </script></body></html>

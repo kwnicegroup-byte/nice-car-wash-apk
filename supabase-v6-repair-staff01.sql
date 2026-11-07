@@ -41,3 +41,31 @@ FROM auth.users u
 JOIN public.v6_branch_members m ON m.user_id = u.id
 JOIN public.branches b ON b.id = m.branch_id
 WHERE lower(u.email) = lower('staff01@nicecarwash.invalid');
+
+
+-- FIX: grant the authenticated application role the SQL privileges required
+-- by the existing V6 RLS policies. RLS still controls which rows are visible.
+GRANT SELECT ON TABLE
+  public.v6_profiles,
+  public.v6_branch_members,
+  public.v6_customers,
+  public.v6_vehicles,
+  public.v6_services,
+  public.v6_orders,
+  public.v6_order_items,
+  public.v6_vehicle_photos,
+  public.v6_audit_logs
+TO authenticated;
+
+GRANT UPDATE ON TABLE public.v6_profiles TO authenticated;
+GRANT INSERT, UPDATE ON TABLE public.v6_customers, public.v6_vehicles TO authenticated;
+GRANT INSERT, UPDATE ON TABLE public.v6_orders TO authenticated;
+GRANT INSERT ON TABLE public.v6_order_items, public.v6_vehicle_photos, public.v6_audit_logs TO authenticated;
+GRANT INSERT, UPDATE, DELETE ON TABLE public.v6_services, public.v6_branch_members TO authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.v6_audit_logs_id_seq TO authenticated;
+
+-- Confirm the specific privileges that caused the login failure.
+SELECT
+  has_table_privilege('authenticated','public.v6_branch_members','SELECT') AS can_read_branch_members,
+  has_table_privilege('authenticated','public.v6_services','SELECT') AS can_read_services,
+  has_table_privilege('authenticated','public.v6_orders','SELECT') AS can_read_orders;

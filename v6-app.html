@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123d78"><link rel="manifest" href="v6-manifest.webmanifest">
+<title>NICE CAR WASH V6</title>
+<style>
+:root{--blue:#123d78;--blue2:#1769aa;--bg:#f2f5fa;--ink:#172235;--muted:#64748b;--line:#d9e2ee;--good:#e9f8ef;--warn:#fff6df}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px Arial,"Noto Sans",sans-serif}header{background:linear-gradient(120deg,var(--blue),var(--blue2));color:white;padding:18px 16px}header strong{font-size:22px}header small{display:block;margin-top:5px;opacity:.9}main{max-width:760px;margin:auto;padding:16px 12px 40px}.card{background:white;border:1px solid var(--line);border-radius:15px;padding:16px;margin:0 0 13px;box-shadow:0 3px 12px #17223508}h2{font-size:19px;margin:0 0 12px}label{display:block;font-size:13px;color:var(--muted);font-weight:700;margin:11px 0 5px}input,select,textarea{width:100%;min-height:44px;padding:10px;border:1px solid #cbd5e1;border-radius:9px;font:inherit;background:white}button{border:0;border-radius:9px;background:var(--blue2);color:white;padding:12px 14px;font:inherit;font-weight:700;margin-top:10px}button.secondary{background:#e7eff9;color:var(--blue)}button.danger{background:#a52d36}button:disabled{opacity:.5}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tabs{display:flex;gap:7px;overflow:auto;margin-bottom:12px}.tabs button{white-space:nowrap;margin:0;padding:10px 12px}.tabs button.active{background:var(--blue);color:white}.hidden{display:none!important}.status{background:#eef6ff;border:1px solid #c8dcf5;border-radius:9px;padding:11px;line-height:1.5;white-space:pre-wrap;margin:8px 0}.good{background:var(--good)}.warn{background:var(--warn)}.muted{color:var(--muted);font-size:13px;line-height:1.5}.item{border-top:1px solid var(--line);padding:10px 0;display:flex;justify-content:space-between;gap:10px}.item:first-child{border-top:0}.right{text-align:right}.pill{font-size:12px;padding:4px 8px;border-radius:20px;background:#e9eff8;color:var(--blue)}.total{font-size:24px;font-weight:800}.photo{max-width:100%;max-height:180px;border-radius:8px;margin-top:8px}footer{text-align:center;color:var(--muted);font-size:12px;padding:10px}
+</style></head>
+<body>
+<header><strong>NICE CAR WASH V6</strong><small>Kota Tinggi · Cloud POS · Owner + 1 Staff</small></header>
+<main>
+<section class="card" id="login">
+<h2>账号登录 / Sign in</h2><div class="muted">使用老板邀请的账号。此系统不开放公开注册。</div>
+<label>电邮 Email</label><input id="email" type="email" autocomplete="username">
+<label>密码 Password</label><input id="password" type="password" autocomplete="current-password">
+<button id="loginBtn">登录 Sign in</button><div id="loginMsg" class="status hidden"></div>
+</section>
+<section id="app" class="hidden">
+<div class="card"><div class="grid"><div><b id="who"></b><div class="muted" id="role"></div></div><div class="right"><span class="pill" id="net">检查网络…</span><br><button class="secondary" id="logout">退出</button></div></div><div id="appMsg" class="status hidden"></div></div>
+<nav class="tabs">
+<button data-tab="order" class="active">开单</button><button data-tab="customers">顾客</button><button data-tab="history">订单记录</button><button data-tab="services">服务价格</button><button data-tab="reports">报表</button>
+</nav>
+<section class="card tab" id="tab-order">
+<h2>新订单 / New Order</h2>
+<label>车牌号码 Plate number</label><input id="plate" placeholder="例如 JXX 1234" autocapitalize="characters">
+<div class="grid"><div><label>顾客姓名 Customer</label><input id="customer" placeholder="可留空"></div><div><label>电话 Phone</label><input id="phone" inputmode="tel" placeholder="可留空"></div></div>
+<label>车型 / Model</label><input id="model" placeholder="例如 Myvi">
+<label>选择服务 / Services</label><div id="serviceChoices" class="muted">载入中…</div>
+<div class="grid"><div><label>付款方式</label><select id="payment"><option>Cash</option><option>DuitNow QR</option><option>Card</option><option>Other</option></select></div><div><label>折扣 RM</label><input id="discount" type="number" min="0" step=".01" value="0"></div></div>
+<div class="total" id="orderTotal">RM 0.00</div>
+<label>车辆照片（可选）</label><input id="photo" type="file" accept="image/*" capture="environment">
+<button id="saveOrder">保存订单 / Save Order</button><div class="muted">断网时订单暂存在本机；恢复网络后按“同步待处理订单”。未显示云端成功前，不代表已上传。</div>
+<button class="secondary" id="syncBtn">同步待处理订单</button>
+</section>
+<section class="card tab hidden" id="tab-customers"><h2>顾客和车辆 / Customer & Vehicle</h2><label>车牌号码</label><input id="findPlate" placeholder="输入完整车牌"><button id="findCustomer">查找资料</button><div id="customerResult" class="status hidden"></div></section>
+<section class="card tab hidden" id="tab-history"><h2>订单记录 / Orders</h2><button class="secondary" id="refreshOrders">刷新订单</button><div id="ordersList" class="muted">尚未载入</div></section>
+<section class="card tab hidden" id="tab-services"><h2>服务价格 / Services</h2><div id="serviceList"></div><div id="ownerService" class="hidden"><label>服务名称</label><input id="newService"><label>价格 RM</label><input id="newPrice" type="number" min="0" step=".01"><button id="addService">新增服务</button></div><div class="muted">只有老板可以新增、修改或停用服务价格。</div></section>
+<section class="card tab hidden" id="tab-reports"><h2>营业报表 / Sales Report</h2><button class="secondary" id="refreshReport">刷新今日报表</button><div id="reportResult" class="status">选择刷新查看云端订单统计。</div></section>
+</section>
+<footer>V6 独立测试版 · 原有 POS 与历史记录不受影响</footer>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(()=>{'use strict';
+const URL='https://pvgfvqgmaxbahpwxhrop.supabase.co',KEY='sb_publishable_Po-500kDayYlJuH-UsVlQg_uALgJ-ZV',BRANCH='2b52c65d-cbd7-405a-98d9-666fad041fce';
+const $=id=>document.getElementById(id),show=(id,v)=>$(id).classList.toggle('hidden',!v),say=(id,t)=>{ $(id).textContent=t;show(id,true); };
+const client=window.supabase?.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+let session=null,role='staff',services=[],selected=new Map(),db=null;
+function msg(t){say('appMsg',t)}
+function money(n){return 'RM '+Number(n||0).toFixed(2)}
+function total(){let s=0;selected.forEach((q,id)=>{const x=services.find(z=>z.id===id);if(x)s+=Number(x.price)*q});return Math.max(0,s-Number($('discount').value||0))}
+function updateTotal(){$('orderTotal').textContent=money(total())}
+function online(){ $('net').textContent=navigator.onLine?'网络在线':'离线模式';}
+window.addEventListener('online',online);window.addEventListener('offline',online);online();
+function openApp(s,m){session=s;show('login',!s);show('app',!!s);if(s){$('who').textContent=s.user.email||'User';loadMembership();}}
+async function loadMembership(){const {data,error}=await client.from('v6_branch_members').select('role,active').eq('branch_id',BRANCH).eq('user_id',session.user.id).maybeSingle();if(error||!data||!data.active){msg('此账号尚未获授权加入 Kota Tinggi 分店。请老板检查账号权限。');await client.auth.signOut();return;}role=data.role;$('role').textContent=role==='owner'?'老板账号 · 全部管理权限':'员工账号 · 日常开单权限';show('ownerService',role==='owner');await loadServices();await refreshOrders();}
+async function loadServices(){const {data,error}=await client.from('v6_services').select('id,service_name,price,active').eq('branch_id',BRANCH).eq('active',true).order('service_name');if(error){msg('读取服务失败：'+error.message);return;}services=data||[];selected.clear();$('serviceChoices').innerHTML='';services.forEach(s=>{const row=document.createElement('div');row.className='item';const label=document.createElement('label');label.style.margin='0';const cb=document.createElement('input');cb.type='checkbox';cb.style.width='20px';cb.style.minHeight='20px';cb.addEventListener('change',()=>{if(cb.checked)selected.set(s.id,1);else selected.delete(s.id);updateTotal()});label.append(cb,document.createTextNode(' '+s.service_name));const price=document.createElement('b');price.textContent=money(s.price);row.append(label,price);$('serviceChoices').append(row)});$('serviceList').innerHTML='';services.forEach(s=>{const d=document.createElement('div');d.className='item';d.textContent=s.service_name+' — '+money(s.price);$('serviceList').append(d)});updateTotal();}
+async function customerVehicle(plate,name,phone,model){let customerId=null,vehicleId=null;const p=plate.trim().toUpperCase();if(name||phone){let q=await client.from('v6_customers').insert({branch_id:BRANCH,full_name:name||'',phone:phone||''}).select('id').single();if(q.error)throw q.error;customerId=q.data.id;}let v=await client.from('v6_vehicles').upsert({branch_id:BRANCH,customer_id:customerId,plate_number:p,vehicle_type:'',make_model:model||''},{onConflict:'branch_id,plate_number'}).select('id').single();if(v.error)throw v.error;vehicleId=v.data.id;return {customerId,vehicleId};}
+function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open('nice-car-wash-v6',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('queue'))r.result.createObjectStore('queue',{keyPath:'id'});};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+async function queuePut(item){const d=await openDB();return new Promise((res,rej)=>{const tx=d.transaction('queue','readwrite');tx.objectStore('queue').put(item);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})}
+async function queueAll(){const d=await openDB();return new Promise((res,rej)=>{const r=d.transaction('queue').objectStore('queue').getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function queueDelete(id){const d=await openDB();return new Promise((res,rej)=>{const tx=d.transaction('queue','readwrite');tx.objectStore('queue').delete(id);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})}
+async function uploadPhoto(file,vehicleId,orderId){if(!file)return;if(file.size>10*1024*1024)throw Error('照片超过10MB，请压缩后再上传');const path=BRANCH+'/'+orderId+'/'+crypto.randomUUID()+'.jpg';const {error}=await client.storage.from('nice-car-wash-v6').upload(path,file,{contentType:file.type||'image/jpeg',upsert:false});if(error)throw error;const r=await client.from('v6_vehicle_photos').insert({branch_id:BRANCH,vehicle_id:vehicleId,order_id:orderId,storage_path:path});if(r.error)throw r.error;}
+async function syncOne(item){const {customerId,vehicleId}=await customerVehicle(item.plate,item.customer,item.phone,item.model);const order={id:item.id,branch_id:BRANCH,receipt_no:item.receipt,customer_id:customerId,vehicle_id:vehicleId,plate_snapshot:item.plate,customer_snapshot:item.customer||'',employee_user_id:session.user.id,payment_method:item.payment,subtotal:item.subtotal,discount:item.discount,total:item.total,status:'completed',device_created_at:item.createdAt};const a=await client.from('v6_orders').insert(order);if(a.error&&a.error.code!=='23505')throw a.error;if(!a.error){const items=item.items.map(x=>({order_id:item.id,service_id:x.id,service_name_snapshot:x.name,unit_price:x.price,quantity:1,line_total:x.price}));const b=await client.from('v6_order_items').insert(items);if(b.error)throw b.error;}if(item.photo){const blob=await (await fetch(item.photo)).blob();const f=new File([blob],'vehicle.jpg',{type:blob.type||'image/jpeg'});await uploadPhoto(f,vehicleId,item.id);}await queueDelete(item.id);}
+async function syncQueue(){if(!session){msg('请先登录再同步');return;}if(!navigator.onLine){msg('目前离线，订单仍保存在这部手机。');return;}const q=await queueAll();let done=0;for(const x of q){try{await syncOne(x);done++;}catch(e){msg('已同步 '+done+' 笔；仍有订单待处理：'+e.message);return;}}msg('同步完成：'+done+' 笔待处理订单。');await refreshOrders();}
+$('saveOrder').onclick=async()=>{try{const plate=$('plate').value.trim().toUpperCase();if(!plate)throw Error('请填写车牌号码');if(!selected.size)throw Error('请至少选择一项服务');const sub=[...selected].reduce((n,[id])=>n+Number(services.find(s=>s.id===id).price),0),disc=Number($('discount').value||0);if(disc<0||disc>sub)throw Error('折扣金额不正确');const id=crypto.randomUUID(),now=new Date().toISOString(),items=[...selected].map(([sid])=>{const s=services.find(z=>z.id===sid);return{id:s.id,name:s.service_name,price:Number(s.price)}});const file=$('photo').files[0];let photo=null;if(file){if(file.size>10*1024*1024)throw Error('照片超过10MB');photo=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}const item={id,receipt:'NCW-'+Date.now(),createdAt:now,plate,customer:$('customer').value.trim(),phone:$('phone').value.trim(),model:$('model').value.trim(),payment:$('payment').value,subtotal:sub,discount:disc,total:sub-disc,items,photo};await queuePut(item);msg('订单已安全暂存在本机队列。正在尝试云端同步；请确认出现同步成功信息后才视为云端保存。');selected.clear();document.querySelectorAll('#serviceChoices input').forEach(x=>x.checked=false);updateTotal();if(navigator.onLine)await syncQueue();$('plate').value='';$('customer').value='';$('phone').value='';$('model').value='';$('photo').value='';}catch(e){msg('未能保存：'+e.message)}};
+$('syncBtn').onclick=syncQueue;
+async function refreshOrders(){if(!session)return;const {data,error}=await client.from('v6_orders').select('id,receipt_no,plate_snapshot,total,payment_method,created_at,employee_user_id').eq('branch_id',BRANCH).order('created_at',{ascending:false}).limit(40);if(error){msg('订单读取失败：'+error.message);return;}$('ordersList').innerHTML='';(data||[]).forEach(o=>{const d=document.createElement('div');d.className='item';const a=document.createElement('div');a.textContent=o.receipt_no+' · '+o.plate_snapshot;const b=document.createElement('b');b.textContent=money(o.total);d.append(a,b);$('ordersList').append(d)});if(!data?.length)$('ordersList').textContent='暂无云端订单';}
+$('refreshOrders').onclick=refreshOrders;
+$('findCustomer').onclick=async()=>{const p=$('findPlate').value.trim().toUpperCase();if(!p)return say('customerResult','请先输入车牌');const {data,error}=await client.from('v6_vehicles').select('plate_number,make_model,customer_id,v6_customers(full_name,phone)').eq('branch_id',BRANCH).eq('plate_number',p).maybeSingle();say('customerResult',error?error.message:data?('车牌：'+data.plate_number+'\n车型：'+data.make_model+'\n顾客：'+(data.v6_customers?.full_name||'—')+'\n电话：'+(data.v6_customers?.phone||'—')):'找不到此车牌记录');};
+$('addService').onclick=async()=>{const name=$('newService').value.trim(),price=Number($('newPrice').value);if(!name||!Number.isFinite(price)||price<0)return msg('请检查服务名称和价格');const {error}=await client.from('v6_services').insert({branch_id:BRANCH,service_name:name,price});if(error)return msg('新增失败：'+error.message);$('newService').value='';$('newPrice').value='';await loadServices();msg('服务已新增');};
+$('refreshReport').onclick=async()=>{const start=new Date();start.setHours(0,0,0,0);const {data,error}=await client.from('v6_orders').select('total,employee_user_id').eq('branch_id',BRANCH).eq('status','completed').gte('created_at',start.toISOString());if(error)return say('reportResult','报表读取失败：'+error.message);const sum=(data||[]).reduce((a,x)=>a+Number(x.total),0);say('reportResult','今日订单：'+data.length+' 笔\n今日营业额：'+money(sum));};
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tab').forEach(x=>show(x.id,x.id==='tab-'+b.dataset.tab));});
+$('loginBtn').onclick=async()=>{const {data,error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)return say('loginMsg','登录失败：'+error.message);openApp(data.session)};
+$('logout').onclick=async()=>{await client.auth.signOut();openApp(null)};
+if(!client){say('loginMsg','无法载入 Supabase SDK，请检查网络后刷新');return;}
+client.auth.getSession().then(({data})=>openApp(data.session));
+client.auth.onAuthStateChange((_e,s)=>{if(s)openApp(s)});
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./v6-sw.js').catch(()=>{}));
+})();
+</script></body></html>

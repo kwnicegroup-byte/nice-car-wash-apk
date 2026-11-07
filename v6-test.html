@@ -39,6 +39,7 @@ button.secondary{background:#e8f0fa;color:var(--blue)}button:disabled{opacity:.5
 <label for="confirmPassword">Confirm password</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="10" placeholder="Enter the same password again">
 <button id="setPasswordBtn">Save password</button>
 </section>
+<section class="card" id="databaseCard"><h1>Database connection check</h1><p class="muted">Read-only check of the existing branches table. No records will be changed.</p><div id="dbStatus" class="status">Waiting for check…</div><button class="secondary" id="dbCheckBtn">Check branches table</button></section>
 <section class="card hidden" id="signedInCard">
 <h1>Account authenticated</h1><div id="signedInStatus" class="status" role="status"></div>
 <div class="notice"><strong>Test environment only.</strong><br>The cloud database tables are initialized, but branch membership, role policies, customer/order workflows, photo storage policies and offline synchronization are not yet released. Do not use this page for live sales or upload customer information yet.</div>
@@ -59,6 +60,7 @@ const show=(id,on)=>$(id).classList.toggle('hidden',!on);
 const message=(id,text)=>{const el=$(id);el.textContent=text;show(id,true)};
 if(!window.supabase){message('loginStatus','Could not load the authentication library. Check your internet connection and reload.');return;}
 const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+async function checkDatabase(){const el=$('dbStatus');el.textContent='Checking public.branches…';const {data,error}=await client.from('branches').select('id,name,code').limit(10);if(error){el.textContent='Database read was blocked or failed: '+error.message+'\\nNo data was changed. Check the table SELECT RLS policy.';return;}if(!data||!data.length){el.textContent='Connection succeeded, but no branch rows were returned. Check whether the table has rows and whether SELECT RLS allows this user.';return;}el.textContent='Read successful. Branches returned: '+data.length+'\\n'+data.map(x=>(x.name||'(unnamed)')+' | '+(x.code||'no code')+' | '+x.id).join('\\n');}
 function showSession(session){
  if(session){show('loginCard',false);show('setPasswordCard',false);show('signedInCard',true);$('signedInStatus').textContent='Signed in as: '+(session.user.email||'authenticated user')+'\n\nAuthentication succeeded. V6 operational modules are still under controlled setup.';}
  else{show('signedInCard',false);show('loginCard',true);}
@@ -70,6 +72,7 @@ async function init(){
  if((flow==='invite'||flow==='recovery')&&data.session){show('loginCard',false);show('signedInCard',false);show('setPasswordCard',true);message('inviteStatus','Invitation link recognized. Set a new password to complete account setup.');return;}
  showSession(data.session);
 }
+$('dbCheckBtn').addEventListener('click',checkDatabase);
 $('loginBtn').addEventListener('click',async()=>{
  const email=$('email').value.trim(),password=$('password').value;
  if(!email||!password){message('loginStatus','Enter your email and password.');return;}
@@ -91,7 +94,7 @@ $('setPasswordBtn').addEventListener('click',async()=>{
 });
 $('logoutBtn').addEventListener('click',async()=>{await client.auth.signOut();showSession(null);});
 client.auth.onAuthStateChange((_event,session)=>{if(session&&$('setPasswordCard').classList.contains('hidden'))showSession(session);});
-init();
+init();checkDatabase();
 })();
 </script>
 </body>

@@ -1,1 +1,1 @@
-{"name":"NICE CAR WASH V6","short_name":"NICE CAR WASH","start_url":"./v6-app.html","scope":"./","display":"standalone","background_color":"#f2f5fa","theme_color":"#123d78","description":"NICE CAR WASH cloud POS"}
+{"name":"NICE CAR WASH V6","short_name":"NICE CAR WASH","start_url":"./v6-app.html","scope":"./","display":"standalone","background_color":"#f2f5fa","theme_color":"#123d78","description":"NICE CAR WASH cloud POS","icons":[{"src":"./v6-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}

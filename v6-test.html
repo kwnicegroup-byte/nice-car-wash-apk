@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123d78">
+<title>NICE CAR WASH V6 · Test Login</title>
+<style>
+:root{--blue:#123d78;--blue2:#1769aa;--bg:#f3f6fb;--ink:#172235;--muted:#617087;--line:#dbe3ee}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px Arial,"Noto Sans",sans-serif}
+header{background:linear-gradient(120deg,var(--blue),var(--blue2));color:#fff;padding:22px 18px}
+.brand{font-size:23px;font-weight:800}.sub{font-size:13px;line-height:1.5;opacity:.9;margin-top:6px}
+main{max-width:520px;margin:28px auto;padding:0 14px 40px}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:0 3px 12px #1722350a}
+h1{font-size:21px;margin:0 0 8px}.muted{color:var(--muted);font-size:14px;line-height:1.5}
+label{display:block;font-size:13px;color:var(--muted);font-weight:700;margin:14px 0 6px}
+input{width:100%;min-height:48px;border:1px solid #cbd5e1;border-radius:10px;padding:12px;font:inherit}
+button{width:100%;border:0;border-radius:10px;padding:13px;margin-top:14px;font:inherit;font-weight:700;background:var(--blue2);color:#fff}
+button.secondary{background:#e8f0fa;color:var(--blue)}button:disabled{opacity:.55}
+.notice{padding:12px;border-radius:10px;background:#fff8e6;border:1px solid #f3d48b;font-size:13px;line-height:1.55;margin-top:14px}
+.status{padding:12px;border-radius:10px;background:#eef6ff;border:1px solid #c8dcf5;font-size:14px;line-height:1.5;white-space:pre-wrap}
+.hidden{display:none!important}.small{font-size:12px;color:var(--muted);text-align:center;margin-top:18px}
+</style>
+</head>
+<body>
+<header><div class="brand">NICE CAR WASH V6</div><div class="sub">Kota Tinggi · Independent cloud test environment</div></header>
+<main>
+<section class="card" id="loginCard">
+<h1>Owner / Staff Login</h1>
+<p class="muted">Sign in using the email address and password assigned by the owner. Public registration is disabled.</p>
+<div id="loginStatus" class="status hidden" role="status"></div>
+<label for="email">Email</label><input id="email" type="email" autocomplete="username" placeholder="name@example.com">
+<label for="password">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Enter password">
+<button id="loginBtn">Sign in</button><button class="secondary" id="forgotBtn">Forgot password</button>
+</section>
+<section class="card hidden" id="setPasswordCard">
+<h1>Set your account password</h1><p class="muted">Create a strong password for your invited NICE CAR WASH V6 account.</p>
+<div id="inviteStatus" class="status hidden" role="status"></div>
+<label for="newPassword">New password</label><input id="newPassword" type="password" autocomplete="new-password" minlength="10" placeholder="At least 10 characters">
+<label for="confirmPassword">Confirm password</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="10" placeholder="Enter the same password again">
+<button id="setPasswordBtn">Save password</button>
+</section>
+<section class="card hidden" id="signedInCard">
+<h1>Account authenticated</h1><div id="signedInStatus" class="status" role="status"></div>
+<div class="notice"><strong>Test environment only.</strong><br>The cloud database tables are initialized, but branch membership, role policies, customer/order workflows, photo storage policies and offline synchronization are not yet released. Do not use this page for live sales or upload customer information yet.</div>
+<button class="secondary" id="logoutBtn">Sign out</button>
+</section>
+<div class="notice"><strong>Important:</strong> This is a separate V6 test page. The existing NICE CAR WASH POS at index.html is not modified. Do not share your password, database password, or Supabase secret key.</div>
+<div class="small">NICE CAR WASH · V6 TEST BUILD</div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+'use strict';
+const SUPABASE_URL='https://pvgfvqgmaxbahpwxhrop.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_Po-500kDayYlJuH-UsVlQg_uALgJ-ZV';
+const REDIRECT_URL='https://kwnicegroup-byte.github.io/nice-car-wash-apk/v6-test.html';
+const $=id=>document.getElementById(id);
+const show=(id,on)=>$(id).classList.toggle('hidden',!on);
+const message=(id,text)=>{const el=$(id);el.textContent=text;show(id,true)};
+if(!window.supabase){message('loginStatus','Could not load the authentication library. Check your internet connection and reload.');return;}
+const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+function showSession(session){
+ if(session){show('loginCard',false);show('setPasswordCard',false);show('signedInCard',true);$('signedInStatus').textContent='Signed in as: '+(session.user.email||'authenticated user')+'\n\nAuthentication succeeded. V6 operational modules are still under controlled setup.';}
+ else{show('signedInCard',false);show('loginCard',true);}
+}
+async function init(){
+ const hash=new URLSearchParams(location.hash.slice(1)),query=new URLSearchParams(location.search),flow=hash.get('type')||query.get('type');
+ const {data,error}=await client.auth.getSession();
+ if(error){message('loginStatus','Session check: '+error.message);return;}
+ if((flow==='invite'||flow==='recovery')&&data.session){show('loginCard',false);show('signedInCard',false);show('setPasswordCard',true);message('inviteStatus','Invitation link recognized. Set a new password to complete account setup.');return;}
+ showSession(data.session);
+}
+$('loginBtn').addEventListener('click',async()=>{
+ const email=$('email').value.trim(),password=$('password').value;
+ if(!email||!password){message('loginStatus','Enter your email and password.');return;}
+ $('loginBtn').disabled=true;const {data,error}=await client.auth.signInWithPassword({email,password});$('loginBtn').disabled=false;
+ if(error){message('loginStatus','Sign-in failed: '+error.message);return;}showSession(data.session);
+});
+$('forgotBtn').addEventListener('click',async()=>{
+ const email=$('email').value.trim();if(!email){message('loginStatus','Enter your email first, then tap Forgot password.');return;}
+ $('forgotBtn').disabled=true;const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:REDIRECT_URL});$('forgotBtn').disabled=false;
+ message('loginStatus',error?'Password reset request failed: '+error.message:'If this email belongs to an account, a password reset link will be sent. Check the inbox and spam folder.');
+});
+$('setPasswordBtn').addEventListener('click',async()=>{
+ const p=$('newPassword').value,c=$('confirmPassword').value;
+ if(p.length<10){message('inviteStatus','Use at least 10 characters for the password.');return;}
+ if(p!==c){message('inviteStatus','The passwords do not match.');return;}
+ $('setPasswordBtn').disabled=true;const {error}=await client.auth.updateUser({password:p});$('setPasswordBtn').disabled=false;
+ if(error){message('inviteStatus','Could not save password: '+error.message);return;}
+ history.replaceState({},document.title,location.pathname);const {data}=await client.auth.getSession();showSession(data.session);
+});
+$('logoutBtn').addEventListener('click',async()=>{await client.auth.signOut();showSession(null);});
+client.auth.onAuthStateChange((_event,session)=>{if(session&&$('setPasswordCard').classList.contains('hidden'))showSession(session);});
+init();
+})();
+</script>
+</body>
+</html>

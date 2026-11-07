@@ -55,7 +55,7 @@ function updateTotal(){$('orderTotal').textContent=money(total())}
 function online(){ $('net').textContent=navigator.onLine?'网络在线':'离线模式';}
 window.addEventListener('online',online);window.addEventListener('offline',online);online();
 let membershipLoading=false;
-async function openApp(s){session=s;show('login',!s);show('app',!!s);if(s){$('who').textContent=s.user.email||'User';await loadMembership();}}
+async function openApp(s){session=s;show('app',false);show('login',!s);if(s){$('who').textContent=s.user.email||'User';await loadMembership();}}
 async function loadMembership(){
  if(!session||membershipLoading)return;
  membershipLoading=true;

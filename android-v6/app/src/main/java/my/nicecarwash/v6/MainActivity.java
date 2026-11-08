@@ -3,7 +3,6 @@ package my.nicecarwash.v6;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.print.PrintAttributes;
@@ -16,9 +15,11 @@ import android.webkit.WebViewClient;
 import android.webkit.WebSettings;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import androidx.webkit.WebViewAssetLoader;
 
 public class MainActivity extends Activity {
     private WebView webView;
+    private WebViewAssetLoader assetLoader;
     private ValueCallback<Uri[]> fileCallback;
     private static final int FILE_CHOOSER_REQUEST = 4107;
 
@@ -31,17 +32,27 @@ public class MainActivity extends Activity {
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(root);
 
+        assetLoader = new WebViewAssetLoader.Builder()
+            .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+            .build();
+
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(true);
+        settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
         webView.addJavascriptInterface(new PrintBridge(), "NiceCarWashAndroid");
 
         webView.setWebViewClient(new WebViewClient() {
-            @Override public void onPageFinished(WebView view, String url) {
+            @Override
+            public android.webkit.WebResourceResponse shouldInterceptRequest(
+                    WebView view, android.webkit.WebResourceRequest request) {
+                return assetLoader.shouldInterceptRequest(request.getUrl());
+            }
+            @Override
+            public void onPageFinished(WebView view, String url) {
                 view.evaluateJavascript(
                     "window.print = function(){ if(window.NiceCarWashAndroid){window.NiceCarWashAndroid.printReceipt();} };",
                     null);
@@ -64,7 +75,7 @@ public class MainActivity extends Activity {
             }
         });
         if (savedInstanceState != null) webView.restoreState(savedInstanceState);
-        else webView.loadUrl("file:///android_asset/index.html");
+        else webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
     }
 
     private class PrintBridge {

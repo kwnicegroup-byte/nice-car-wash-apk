@@ -1,7 +1,15 @@
-name: Build Nice Car Wash APK
+name: Build NICE CAR WASH V6 Local APK
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'v6-local.html'
+      - 'android-v6/**'
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: read
 
 jobs:
   build-apk:
@@ -10,31 +18,34 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.7'
+          gradle-version: '8.9'
 
-      - name: Unpack Android project
+      - name: Package latest V6 local POS into Android assets
         run: |
-          unzip -q NiceCarWashAndroid_Project.zip -d unpacked
-          test -f unpacked/NiceCarWashAndroid/app/build.gradle
+          mkdir -p android-v6/app/src/main/assets
+          cp v6-local.html android-v6/app/src/main/assets/index.html
+          test -s android-v6/app/src/main/assets/index.html
+          grep -q 'nice-car-wash-v6-local' android-v6/app/src/main/assets/index.html
 
-      - name: Build APK
-        run: |
-          cd unpacked/NiceCarWashAndroid
-          gradle --no-daemon assembleDebug
+      - name: Build debug APK
+        run: gradle --no-daemon -p android-v6 assembleDebug
 
-      - name: Save APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Nice-Car-Wash-debug-APK
-          path: unpacked/NiceCarWashAndroid/app/build/outputs/apk/debug/app-debug.apk
+          name: NICE-CAR-WASH-V6-Local-APK
+          path: android-v6/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14

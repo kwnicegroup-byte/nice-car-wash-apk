@@ -14,3 +14,7 @@ android {
         versionName '6.0-local'
     }
 }
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}

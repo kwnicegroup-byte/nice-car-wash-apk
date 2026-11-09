@@ -10,8 +10,8 @@ android {
         applicationId 'my.nicecarwash.v6'
         minSdk 23
         targetSdk 35
-        versionCode 1
-        versionName '6.0-local'
+        versionCode 2
+        versionName '6.1-local'
     }
 }
 

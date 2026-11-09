@@ -24,6 +24,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Restore persistent Android signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: nice-car-wash-v6-debug-signing-key-v1
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
